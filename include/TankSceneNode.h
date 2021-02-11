@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -123,7 +123,8 @@ public:
     void        setThief();
     void        setDimensions(const float size[3]);
 
-    void        setClipPlane(const GLfloat* plane);
+    void        setClipPlane(const float plane[4]);
+    void        resetClipPlane();
     void        setExplodeFraction(float t);
     void        setJumpJets(float scale);
 

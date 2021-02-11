@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -20,10 +20,6 @@
 
 /* local headers */
 #include "ScoreboardRenderer.h"
-
-// initialize the singleton
-template <>
-Roaming* Singleton<Roaming>::_instance = (Roaming*)0;
 
 Roaming::Roaming() : view(roamViewDisabled),
     targetManual(-1),

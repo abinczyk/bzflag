@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -17,9 +17,11 @@
 #ifndef BZF_VIEW_FRUSTUM_H
 #define BZF_VIEW_FRUSTUM_H
 
-#include "common.h"
-#include "bzfgl.h"
+// inherits from
 #include "Frustum.h"
+
+// Common headers
+#include "bzfgl.h"
 
 // FIXME -- will need a means for off center projections for
 //  looking through teleporters

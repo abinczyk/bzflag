@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -26,8 +26,6 @@
 #include "CallbackList.h"
 #include "bzfio.h"
 #include "Singleton.h"
-
-#define BZDB (StateDatabase::instance())
 
 /** BZDB is the generic name:value pair database within bzflag and bzfs. Its
  * useful for data that can be serialized to a string that needs to be
@@ -440,6 +438,9 @@ inline bool StateDatabase::getSaveDefault() const
 std::istream& operator>>(std::istream& src, StateDatabase::Expression& dst);
 std::string& operator>>(std::string& src, StateDatabase::Expression& dst);
 std::ostream& operator<<(std::ostream& dst, const StateDatabase::Expression& src);
+
+#define BZDB (StateDatabase::instance())
+
 
 #endif // BZF_STATE_DATABASE_H
 

@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -97,7 +97,7 @@ Player::Player(const PlayerId& _id, TeamColor _team,
     computedHits = 0;
 
     // set call sign
-    ::strncpy(callSign, name, CallSignLen);
+    ::strncpy(callSign, name, CallSignLen - 1);
     callSign[CallSignLen-1] = '\0';
 
     setMotto(_motto); // will be superseded by the server
@@ -168,7 +168,7 @@ static float rabbitRank (int wins, int losses)
 
 void Player::setMotto(const char* _motto)
 {
-    strncpy(motto, _motto, MottoLen);
+    strncpy(motto, _motto, MottoLen - 1);
     motto[MottoLen - 1] = '\0';   // ensure null termination
 }
 
@@ -925,7 +925,7 @@ void Player::addToScene(SceneDatabase* scene, TeamColor effectiveTeam,
     tankNode->setInTheCockpit(inCockpit);
 
     // reset the clipping plane
-    tankNode->setClipPlane(NULL);
+    tankNode->resetClipPlane();
 
     tankNode->setJumpJets(0.0f);
 

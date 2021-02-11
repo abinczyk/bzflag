@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -60,15 +60,10 @@ const GLfloat       BackgroundRenderer::defaultGroundColorInv[4][4] =
     { 1.00f, 1.00f, 1.00f, 1.0f },
     { 1.00f, 1.00f, 1.00f, 1.0f }
 };
-const GLfloat       BackgroundRenderer::receiverColor[3] =
-{ 0.3f, 0.55f, 0.3f };
-const GLfloat       BackgroundRenderer::receiverColorInv[3] =
-{ 0.55f, 0.3f, 0.55f };
 
-BackgroundRenderer::BackgroundRenderer(const SceneRenderer&) :
+BackgroundRenderer::BackgroundRenderer() :
     blank(false),
     invert(false),
-    style(0),
     gridSpacing(60.0f), // meters
     gridCount(4.0f),
     mountainsAvailable(false),
@@ -1065,11 +1060,7 @@ void BackgroundRenderer::drawSky(SceneRenderer& renderer, bool mirror)
     const bool useClipPlane = (mirror && (doSkybox || BZDBCache::drawCelestial));
 
     if (useClipPlane)
-    {
         glEnable(GL_CLIP_PLANE0);
-        const GLdouble plane[4] = {0.0, 0.0, +1.0, 0.0};
-        glClipPlane(GL_CLIP_PLANE0, plane);
-    }
 
     if (doSkybox)
         drawSkybox();

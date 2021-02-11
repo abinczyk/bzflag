@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -19,11 +19,6 @@
 #include "ActionBinding.h"
 #include "CommandManager.h"
 #include "KeyManager.h"
-
-// initialize the singleton
-template <>
-ActionBinding* Singleton<ActionBinding>::_instance = (ActionBinding*)0;
-
 
 ActionBinding::ActionBinding()
 {

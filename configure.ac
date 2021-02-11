@@ -1,6 +1,6 @@
 dnl                   C O N F I G U R E . A C
 dnl BZFlag
-dnl Copyright (c) 1993-2018 Tim Riker
+dnl Copyright (c) 1993-2020 Tim Riker
 dnl
 dnl This package is free software;  you can redistribute it and/or
 dnl modify it under the terms of the license found in the file
@@ -44,7 +44,7 @@ dnl Minimum version of autoconf required.  Should coincide with the
 dnl setting in the autogen.sh script.
 AC_PREREQ([2.68])
 
-AC_INIT([BZFlag],[2.4.19],[http://BZFlag.org/],[bzflag])
+AC_INIT([BZFlag],[2.4.21],[http://BZFlag.org/],[bzflag])
 AC_CONFIG_SRCDIR(src/bzflag/bzflag.cxx)
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -128,7 +128,7 @@ BZ_CONFIGURE_STAGE([arguments], [1 of 9])
 MP_WITH_CURSES
 
 # check for SDL option (enabled by default now)
-AC_ARG_WITH(SDL, AS_HELP_STRING([--without-SDL | --with-SDL={1,2}],[Do not use Simple DirectMedia Layer or force using a specific version (by default tries 2, then 1, then resorts to native platform code if available]), sdl_version="$withval", sdl_version="detect")
+AC_ARG_WITH(SDL, AS_HELP_STRING([--without-SDL | --with-SDL={1,2}],[Do not use Simple DirectMedia Layer or force using a specific version (by default requires SDL2]), sdl_version="$withval", sdl_version="2")
 
 # build the server?
 AC_ARG_ENABLE(server, AS_HELP_STRING([--disable-server],[do not compile server]))
@@ -168,12 +168,6 @@ AC_ARG_ENABLE(threads, [  --disable-threads        build without threading])
 
 # do we want bzadmin?
 AC_ARG_ENABLE(bzadmin, [  --disable-bzadmin       do not build text client])
-
-# build a binary set to stop functioning after some date
-AC_ARG_ENABLE(timebomb, [  --enable-timebomb       build exp Date])
-if test x$enable_timebomb = xyes; then
-    AC_DEFINE(TIME_BOMB, "3/13/1998", [Time Bomb expiration])
-fi
 
 AC_ARG_ENABLE(robots, [  --disable-robots        disable robots])
 if test x$enable_robots != xno; then
@@ -217,18 +211,7 @@ AC_PROG_CXX
 if test -z "$CXX"; then
     AC_MSG_ERROR([A c++ compiler is required to build BZFlag])
 fi
-AX_CXX_COMPILE_STDCXX_0X
-if test "x$ax_cv_cxx_compile_cxx0x_native" != xyes; then
-    if test "x$ax_cv_cxx_compile_cxx0x_cxx" = xyes; then
-	CXXFLAGS="$CXXFLAGS -std=c++0x"
-	user_CXXFLAGS="$user_CXXFLAGS -std=c++0x"	# for --enable-debug
-    elif test "x$ax_cv_cxx_compile_cxx0x_gxx" = xyes; then
-	CXXFLAGS="$CXXFLAGS -std=gnu++0x"
-	user_CXXFLAGS="$user_CXXFLAGS -std=gnu++0x"	# for --enable-debug
-    else
-	AC_MSG_ERROR([A c++ compiler with C++0x support is required to build BZFlag])
-    fi
-fi
+AX_CXX_COMPILE_STDCXX_11([],[mandatory])
 AC_PROG_CC
 AC_PROG_LN_S
 AC_CHECK_PROG(AR, ar, ar)
@@ -677,18 +660,32 @@ savedLIBS=$LIBS
 LIBS="$GLIBS $LIBS"
 AC_LANG(C)
 if test "x$enable_client" != xno -a "x$with_SDL" != xno; then
-    if test "x$sdl_version" != "x1" -a "x$sdl_version" != "x2"; then
-        sdl_version="detect"
+    if test "x$sdl_version" != "x1" -a "x$sdl_version" != "xdetect"; then
+        sdl_version="2"
     fi
 
-    if test "x$sdl_version" = "x2" -o "x$sdl_version" = "xdetect"; then
+    if test "x$sdl_version" = "x2"; then
         # Test for SDL 2
         AM_PATH_SDL2(2.0.3, with_SDL=2, with_SDL=no)
+
+        if test "x$with_SDL" != "x2"; then
+            AC_MSG_WARN(
+            [Client build is enabled, but SDL2 does not seem to be fully available ... disabling BZFlag client])
+            AM_CONDITIONAL(CLIENT_INCLUDED, false)
+            enable_client=no
+        fi
     fi
 
-    if test "x$with_SDL" != "x2" -a \( "x$sdl_version" = "x1" -o "x$sdl_version" = "xdetect" \); then
+    if test "x$sdl_version" = "x1"; then
         # Test for SDL 1.2
         AM_PATH_SDL(1.2.10, with_SDL=1, with_SDL=no)
+
+        if test "x$with_SDL" != "x1"; then
+            AC_MSG_WARN(
+            [Client build is enabled, but SDL1 does not seem to be fully available ... disabling BZFlag client])
+            AM_CONDITIONAL(CLIENT_INCLUDED, false)
+            enable_client=no
+        fi
     fi
 fi
 AC_LANG(C++)
@@ -750,21 +747,7 @@ case $host_os in
 	CONF_CXXFLAGS="$CONF_CXXFLAGS $FLAGS"
 	case $host_vendor in
 	     pc)
-	       if expr `$CC -dumpversion` \>= "3.4" > /dev/null ; then
-		 FLAGS=-mtune
-	       else
-		 FLAGS=-march
-	       fi
-	       if expr `$CC -dumpversion` \>= "4.2" > /dev/null ; then
-		 FLAGS="$FLAGS=native"
-	       else
-	       # silly hack, should be a proper configure compiler option test
-	       if test x$host_cpu = xx86_64; then
-		 FLAGS="$FLAGS=k8"
-	       else
-		 FLAGS="$FLAGS=$host_cpu"
-	       fi
-	       fi
+               FLAGS=-mtune=native
 	       CONF_CFLAGS="$CONF_CFLAGS $FLAGS";
 	       CONF_CXXFLAGS="$CONF_CXXFLAGS $FLAGS";
 	       CONF_CXXFLAGS="$CONF_CXXFLAGS -fsigned-char";;
@@ -782,11 +765,7 @@ case $host_os in
      mingw32*)
 	AC_DEFINE(HALF_RATE_AUDIO, 1, [Half rate Audio])
 	FLAGS="-Wall -W"
-	if expr `$CC -dumpversion` \>= "3.4" > /dev/null ; then
-	  FLAGS="$FLAGS -mtune=$host_cpu"
-	else
-	  FLAGS="$FLAGS -march=$host_cpu"
-	fi
+	FLAGS="$FLAGS -mtune=$host_cpu"
 	CONF_CFLAGS="$CONF_CFLAGS $FLAGS";
 	CONF_CXXFLAGS="$CONF_CXXFLAGS $FLAGS";
 	CONF_CXXFLAGS="$CONF_CXXFLAGS -fsigned-char";;
@@ -817,7 +796,7 @@ if test x$enable_profiling = xyes ; then
     if test "$GCC" = yes ; then
 	CONF_CFLAGS="$CONF_CFLAGS -pg"
 	CONF_CXXFLAGS="$CONF_CXXFLAGS -pg"
-	if expr `$CC -dumpversion` \>= "6" > /dev/null ; then
+	if expr `$CC -dumpversion | sed 's/\..*//'` \>= "6" > /dev/null ; then
            CONF_CFLAGS="$CONF_CFLAGS -no-pie"
            CONF_CXXFLAGS="$CONF_CXXFLAGS -no-pie"
         fi
@@ -837,7 +816,7 @@ if test x$enable_debug = xyes ; then
 else
     if test "$GCC" = yes ; then
 	case "`$CC --version 2>&1`" in
-	    *LLVM*|lcc*)
+	    *LLVM*|lcc*|clang*)
 		# Apple LLVM and MCST LCC falsely claim to be GCC
 		;;
 	    *)
@@ -1135,9 +1114,9 @@ dnl *** Report Summary ***
 dnl **********************
 
 if test "x$enable_client" = "xno"; then
-    if test "x$have_gl" = "xno" ; then
-	build_bzflag="no bzflag client binary!"
+    build_bzflag="no bzflag client binary!"
 
+    if test "x$have_gl" = "xno" ; then
         if test "x$ac_cv_search_glBegin" = xno ; then
             build_bzflag="$build_bzflag (missing OpenGL)"
         else
@@ -1149,15 +1128,21 @@ if test "x$enable_client" = "xno"; then
                 build_bzflag="$build_bzflag (missing GLEW)"
             fi
         fi
-    else
-	build_bzflag="no bzflag client binary!"
+    fi
+
+    if test "x$sdl_version" = "x2" -a "x$with_SDL" != "x2" ; then
+        build_bzflag="$build_bzflag (missing SDL2)"
+    fi
+
+    if test "x$sdl_version" = "x1" -a "x$with_SDL" != "x1" ; then
+        build_bzflag="$build_bzflag (missing SDL1)"
     fi
 else
     if test x$with_SDL != xno; then
         if test x$with_SDL = x2; then
             build_bzflag="yes (with SDL2)"
 	else
-	    build_bzflag="yes (with SDL)"
+	    build_bzflag="yes (with SDL1)"
 	fi
     else
 	build_bzflag="yes"

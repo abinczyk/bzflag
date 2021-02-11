@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -29,7 +29,6 @@ class TextChunk
 {
 public:
     TextChunk();
-    TextChunk(const TextChunk& tc);
     TextChunk(const std::string& fileName, const int _maxLines = -1, const int _maxLineLength = -1);
 
     size_t size() const;

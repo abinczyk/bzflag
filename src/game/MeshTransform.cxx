@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -473,6 +473,13 @@ MeshTransform::MeshTransform()
     transforms.clear();
 
     return;
+}
+
+
+MeshTransform::MeshTransform(const MeshTransform& old)
+{
+    for (unsigned int i = 0; i < old.transforms.size(); i++)
+        transforms.push_back(old.transforms[i]);
 }
 
 

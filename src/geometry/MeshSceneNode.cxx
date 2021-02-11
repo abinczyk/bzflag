@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -9,9 +9,6 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
-// bzflag common header
-#include "common.h"
 
 // interface header
 #include "MeshSceneNode.h"
@@ -73,10 +70,6 @@ MeshSceneNode::MeshSceneNode(const MeshObstacle* _mesh)
     drawMgr = drawInfo->getDrawMgr();
     if (drawMgr == NULL)
         return;
-
-    // disable the plane
-    noPlane = true;
-    plane[0] = plane[1] = plane[2] = plane[3] = 0.0f;
 
     // setup the extents, sphere, and lengthPerPixel adjustment
     float lengthAdj = 1.0f;
@@ -208,25 +201,6 @@ inline int MeshSceneNode::calcNormalLod(const ViewFrustum& vf)
 }
 
 
-inline int MeshSceneNode::calcShadowLod(const ViewFrustum& vf)
-{
-    // FIXME: adjust for ray direction
-    const float* e = vf.getEye();
-    const float* s = getSphere();
-    const float* d = vf.getDirection();
-    const float dist = (d[0] * (s[0] - e[0])) +
-                       (d[1] * (s[1] - e[1])) +
-                       (d[2] * (s[2] - e[2]));
-    const float lengthPerPixel = dist * LodScale;
-    for (int i = (lodCount - 1); i > 0; i--)
-    {
-        if (lengthPerPixel > lodLengths[i])
-            return i;
-    }
-    return 0;
-}
-
-
 inline int MeshSceneNode::calcRadarLod()
 {
     for (int i = (radarCount - 1); i > 0; i--)
@@ -282,7 +256,7 @@ void MeshSceneNode::addRenderNodes(SceneRenderer& renderer)
 void MeshSceneNode::addShadowNodes(SceneRenderer& renderer)
 {
     const ViewFrustum& vf = renderer.getViewFrustum();
-    const int level = (lodCount == 1) ? 0 : calcShadowLod(vf);
+    const int level = (lodCount == 1) ? 0 : calcNormalLod(vf);
     LodNode& lod = lods[level];
     for (int i = 0; i < lod.count; i++)
     {

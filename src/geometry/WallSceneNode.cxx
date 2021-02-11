@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -9,9 +9,6 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
-// bzflag common header
-#include "common.h"
 
 // interface headers
 #include "WallSceneNode.h"
@@ -37,7 +34,6 @@ WallSceneNode::WallSceneNode() : numLODs(0),
     elementAreas(NULL),
     style(0)
 {
-    noPlane      = false;
     dynamicColor = NULL;
     color[3] = 1.0f;
     modulateColor[3] = 1.0f;
@@ -64,6 +60,11 @@ WallSceneNode::~WallSceneNode()
 {
     // free element area table
     delete[] elementAreas;
+}
+
+const GLfloat* WallSceneNode::getPlane() const
+{
+    return plane;
 }
 
 void            WallSceneNode::setNumLODs(int num, float* areas)

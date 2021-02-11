@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -74,11 +74,6 @@ void    _debugLookups(const std::string &name)
 #else
 #define debugLookups(name)
 #endif
-
-// initialize the singleton
-template <>
-StateDatabase* Singleton<StateDatabase>::_instance = (StateDatabase*)0;
-
 
 const std::string StateDatabase::BZDB_AGILITYADVEL     = std::string("_agilityAdVel");
 const std::string StateDatabase::BZDB_AGILITYTIMEWINDOW    = std::string("_agilityTimeWindow");

@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -564,7 +564,7 @@ void TextureMatrix::print(std::ostream& out, const std::string& indent) const
             out << indent << "  scale " << uScaleFreq << " " << vScaleFreq << " "
                 << uScale << " " << vScale << std::endl;
         }
-        if ((uCenter != 0.5f) || (uCenter != 0.5f))
+        if ((uCenter != 0.5f) || (vCenter != 0.5f))
             out << indent << "  center " << uCenter << " " << vCenter << std::endl;
     }
 

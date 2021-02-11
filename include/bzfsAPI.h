@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -39,8 +39,13 @@
 #define strcasecmp stricmp
 #endif
 #else
+#ifdef __clang__
+#define BZF_API __attribute__((visibility("default")))
+#define BZF_PLUGIN_CALL extern "C" __attribute__((visibility("default")))
+#else
 #define BZF_API
 #define BZF_PLUGIN_CALL extern "C"
+#endif
 #endif
 
 /* Provide a means to deprecate API functions to discourage their use
@@ -1896,6 +1901,7 @@ BZF_API bool bz_moveFlag ( int flag, float pos[3] );
 BZF_API int bz_getPlayerFlagID ( int playerID );
 BZF_API int bz_flagPlayer ( int flag );
 BZF_API bool bz_getFlagPosition ( int flag, float* pos );
+BZF_API bool bz_getNearestFlagSafetyZone(int flag, float *pos);
 
 
 // world
@@ -2002,6 +2008,8 @@ private:
 };
 
 BZF_API void bz_getRandomPoint ( bz_CustomZoneObject *obj, float *randomPos );
+BZF_API bool bz_getSpawnPointWithin ( bz_CustomZoneObject *obj, float randomPos[3] );
+BZF_API bool bz_isWithinWorldBoundaries ( float pos[3] );
 
 class bz_CustomMapObjectHandler
 {

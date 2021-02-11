@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -9,9 +9,6 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
-// bzflag common header
-#include "common.h"
 
 // interface header
 #include "SphereSceneNode.h"
@@ -363,8 +360,6 @@ void SphereLodSceneNode::SphereLodRenderNode::render()
     const GLfloat radius = sceneNode->radius;
     const GLfloat* sphere = sceneNode->getSphere();
 
-    static const GLdouble groundPlane[] = { 0.0, 0.0, 1.0, 0.0 };
-    glClipPlane(GL_CLIP_PLANE0, groundPlane);
     glEnable(GL_CLIP_PLANE0);
 
 #ifdef GL_VERSION_1_2
@@ -617,13 +612,10 @@ setBaseIndex(int _baseIndex)
 
 void            SphereBspSceneNode::SphereBspRenderNode::render()
 {
-    static const GLdouble groundPlane[] = { 0.0, 0.0, 1.0, 0.0 };
-
     int i, j;
     const GLfloat radius = sceneNode->radius;
     const GLfloat* sphere = sceneNode->getSphere();
 
-    glClipPlane(GL_CLIP_PLANE0, groundPlane);
     glEnable(GL_CLIP_PLANE0);
 
     glPushMatrix();

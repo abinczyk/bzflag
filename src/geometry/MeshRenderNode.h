@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -13,10 +13,11 @@
 #ifndef _MESH_RENDER_NODE_H
 #define _MESH_RENDER_NODE_H
 
+// Inherits from
+#include "RenderNode.h"
 
 // common implementation headers
 #include "bzfgl.h"
-#include "RenderNode.h"
 
 
 class Extents;

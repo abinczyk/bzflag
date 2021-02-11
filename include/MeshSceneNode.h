@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -19,10 +19,11 @@
 #ifndef BZF_MESH_SCENE_NODE_H
 #define BZF_MESH_SCENE_NODE_H
 
-#include "common.h"
-#include "bzfgl.h"
+// Inherits
 #include "SceneNode.h"
 
+// Common headers
+#include "bzfgl.h"
 //
 // NOTES:
 //
@@ -124,7 +125,6 @@ private:
     void updateMaterial(MeshMaterial* mat);
     const BzMaterial* convertMaterial(const BzMaterial* bzmat);
     int calcNormalLod(const ViewFrustum&);
-    int calcShadowLod(const ViewFrustum&);
     int calcRadarLod();
 
     friend class MeshSceneNodeMgr;

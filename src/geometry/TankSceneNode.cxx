@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -9,11 +9,6 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-#define _NO_LIST_ID 0xffffffff
-
-// bzflag common headers
-#include "common.h"
-#include "global.h"
 
 // interface header
 #include "TankSceneNode.h"
@@ -31,6 +26,8 @@
 #include "ViewFrustum.h"
 
 #include "TextureManager.h"
+
+#define _NO_LIST_ID 0xffffffff
 
 using namespace TankGeometryEnums;
 
@@ -427,18 +424,19 @@ void TankSceneNode::setJumpJets(float scale)
 }
 
 
-void TankSceneNode::setClipPlane(const GLfloat* _plane)
+void TankSceneNode::setClipPlane(const float _plane[])
 {
-    if (!_plane)
-        clip = false;
-    else
-    {
-        clip = true;
-        clipPlane[0] = GLdouble(_plane[0]);
-        clipPlane[1] = GLdouble(_plane[1]);
-        clipPlane[2] = GLdouble(_plane[2]);
-        clipPlane[3] = GLdouble(_plane[3]);
-    }
+    clip = true;
+    clipPlane[0] = GLdouble(_plane[0]);
+    clipPlane[1] = GLdouble(_plane[1]);
+    clipPlane[2] = GLdouble(_plane[2]);
+    clipPlane[3] = GLdouble(_plane[3]);
+}
+
+
+void TankSceneNode::resetClipPlane()
+{
+    clip = false;
 }
 
 
@@ -940,8 +938,8 @@ void TankSceneNode::TankRenderNode::render()
 
     if (sceneNode->clip && !isShadow)
     {
-        glClipPlane(GL_CLIP_PLANE0, sceneNode->clipPlane);
-        glEnable(GL_CLIP_PLANE0);
+        glClipPlane(GL_CLIP_PLANE1, sceneNode->clipPlane);
+        glEnable(GL_CLIP_PLANE1);
     }
 
     const GLfloat* sphere = sceneNode->getSphere();
@@ -1049,7 +1047,7 @@ void TankSceneNode::TankRenderNode::render()
     if (!BZDBCache::blend && sceneNode->transparent)
         myStipple(0.5f);
     if (sceneNode->clip)
-        glDisable(GL_CLIP_PLANE0);
+        glDisable(GL_CLIP_PLANE1);
 
     return;
 }
@@ -1477,9 +1475,7 @@ void TankSceneNode::TankRenderNode::renderJumpJets()
     myColor4f(1.0f, 1.0f, 1.0f, 0.5f);
 
     // use a clip plane, because the ground has no depth
-    const GLdouble clip_plane[4] = {0.0, 0.0, 1.0, 0.0};
-    glClipPlane(GL_CLIP_PLANE1, clip_plane);
-    glEnable(GL_CLIP_PLANE1);
+    glEnable(GL_CLIP_PLANE0);
 
     sceneNode->jumpJetsGState.setState();
     glDepthMask(GL_FALSE);
@@ -1508,7 +1504,7 @@ void TankSceneNode::TankRenderNode::renderJumpJets()
     glDepthMask(GL_TRUE);
     sceneNode->gstate.setState();
 
-    glDisable(GL_CLIP_PLANE1);
+    glDisable(GL_CLIP_PLANE0);
 
     addTriangleCount(4);
 

@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -9,9 +9,6 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
-// bzflag common header
-#include "common.h"
 
 // interface header
 #include "MeshPolySceneNode.h"
@@ -169,7 +166,7 @@ MeshPolySceneNode::MeshPolySceneNode(const float _plane[4],
 
     // choose axis to ignore (the one with the largest normal component)
     int ignoreAxis;
-    const GLfloat* normal = getPlane();
+    const auto normal = plane;
     if (fabsf(normal[0]) > fabsf(normal[1]))
     {
         if (fabsf(normal[0]) > fabsf(normal[2]))
@@ -286,8 +283,7 @@ bool MeshPolySceneNode::inAxisBox (const Extents& exts) const
     if (!extents.touches(exts))
         return false;
 
-    return testPolygonInAxisBox (getVertexCount(), getVertices(),
-                                 getPlane(), exts);
+    return testPolygonInAxisBox (getVertexCount(), getVertices(), plane, exts);
 }
 
 

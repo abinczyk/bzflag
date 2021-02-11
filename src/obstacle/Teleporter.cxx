@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -654,7 +654,7 @@ void Teleporter::printOBJ(std::ostream& out, const std::string& UNUSED(indent)) 
         xtool.modifyNormal(norms[i]);
 
     out << "# OBJ - start tele" << std::endl;
-    out << "o bztele_" << getObjCounter() << std::endl;
+    out << "o bztele_" << name << std::endl;
 
     for (i = 0; i < 8; i++)
     {
@@ -690,8 +690,6 @@ void Teleporter::printOBJ(std::ostream& out, const std::string& UNUSED(indent)) 
     out << "f -6/-4/-4 -5/-3/-4 -1/-2/-4 -2/-1/-4" << std::endl;
 
     out << std::endl;
-
-    incObjCounter();
 
     return;
 }

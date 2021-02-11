@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -17,11 +17,13 @@
 #ifndef BZF_BOLT_SCENE_NODE_H
 #define BZF_BOLT_SCENE_NODE_H
 
-#include "common.h"
-#include "ShotSceneNode.h"
+// Inherits from
+#include "SceneNode.h"
+
+// Common headers
 #include "OpenGLLight.h"
 
-class BoltSceneNode : public ShotSceneNode
+class BoltSceneNode : public SceneNode
 {
 public:
     BoltSceneNode(const GLfloat pos[3], const GLfloat vel[3], bool super);
@@ -48,7 +50,7 @@ public:
         invisible = _invisible;
     }
 
-    void        move(const GLfloat pos[3], const GLfloat forward[3]);
+    virtual void move(const GLfloat pos[3], const GLfloat forward[3]);
     void        addLight(SceneRenderer&);
 
     void        notifyStyleChange();

@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -9,9 +9,6 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
-// bzflag common header
-#include "common.h"
 
 // interface header
 #include "SceneNode.h"
@@ -44,7 +41,6 @@ SceneNode::SceneNode()
     setCenter(0.0f, 0.0f, 0.0f);
     setRadius(0.0f);
 
-    noPlane = true;
     occluder = false;
     octreeState = OctreeCulled;
 
@@ -168,6 +164,11 @@ int SceneNode::getVertexCount () const
 }
 
 const GLfloat* SceneNode::getVertex (int) const
+{
+    return NULL;
+}
+
+const GLfloat* SceneNode::getPlane() const
 {
     return NULL;
 }

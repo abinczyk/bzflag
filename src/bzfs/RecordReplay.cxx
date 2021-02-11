@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -2065,11 +2065,11 @@ static bool saveHeader(int p, RRtime filetime, FILE *f)
 
     // setup the data
     memset(&hdr, 0, sizeof(hdr));
-    strncpy(hdr.callSign, callsign, sizeof(hdr.callSign));
-    strncpy(hdr.motto, motto, sizeof(hdr.motto));
-    strncpy(hdr.ServerVersion, getServerVersion(), sizeof(hdr.ServerVersion));
-    strncpy(hdr.appVersion, getAppVersion(), sizeof(hdr.appVersion));
-    strncpy(hdr.realHash, hexDigest.c_str(), sizeof(hdr.realHash));
+    strncpy(hdr.callSign, callsign, sizeof(hdr.callSign) - 1);
+    strncpy(hdr.motto, motto, sizeof(hdr.motto) - 1);
+    memcpy(hdr.ServerVersion, getServerVersion(), sizeof(hdr.ServerVersion));
+    strncpy(hdr.appVersion, getAppVersion(), sizeof(hdr.appVersion) - 1);
+    strncpy(hdr.realHash, hexDigest.c_str(), sizeof(hdr.realHash) - 1);
     packFlagTypes(flagsBuf, &hdr.flagsSize);
     hdr.flags = flagsBuf;
 

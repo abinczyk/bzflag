@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -46,7 +46,7 @@
 #endif
 
 #ifndef BZ_REV
-#  define BZ_REV        19
+#  define BZ_REV        21
 #endif
 
 // DEVEL | RC# | STABLE | MAINT
@@ -54,7 +54,7 @@
 #  define BZ_BUILD_TYPE     "DEVEL"
 #endif
 
-const char *bzfcopyright = "Copyright (c) 1993-2018 Tim Riker";
+const char *bzfcopyright = "Copyright (c) 1993-2020 Tim Riker";
 
 static int getBuildDate()
 {

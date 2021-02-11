@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -58,7 +58,6 @@
 #include "Team.h"
 #include "TextureManager.h"
 #include "TextUtils.h"
-#include "TimeBomb.h"
 #include "version.h"
 #include "WordFilter.h"
 #include "ZSceneDatabase.h"
@@ -1154,7 +1153,7 @@ static void     doEvent(BzfDisplay *disply)
         }
 
         // ungrab the mouse if we're running full screen
-        if (mainWindow->getFullscreen())
+        if (mainWindow->getFullscreen() && !unmapped) // skip if already unmapped to avoid losing previous resolution
         {
             preUnmapFormat = -1;
             if (disply->getNumResolutions() > 1)
@@ -1422,7 +1421,7 @@ static Player*      addPlayer(PlayerId id, const void* msg, int showMessage)
     msg = nboUnpackString (msg, motto, MottoLen);
 
     // Strip any ANSI color codes
-    strncpy (callsign, stripAnsiCodes (std::string (callsign)).c_str (), 32);
+    strncpy (callsign, stripAnsiCodes (std::string (callsign)).c_str (), 31);
 
     // id is slot, check if it's empty
     const int i = id;
@@ -3740,8 +3739,7 @@ static void handleFlagTransferred( Player *fromTank, Player *toTank, int flagInd
         }
     }
 
-    std::string message(toTank->getCallSign());
-    message += " stole ";
+    std::string message("stole ");
     message += fromTank->getCallSign();
     message += "'s flag";
     addMessage(toTank, message);
@@ -4817,7 +4815,7 @@ static void     addRobots()
         }
         else
         {
-            snprintf(callsign, CallSignLen, "%.29s%2.2hhx", myTank->getCallSign(), j);
+            snprintf(callsign, CallSignLen, "%.29s%2.2x", myTank->getCallSign(), (short int)j);
             robots[j] = new RobotPlayer(robotServer[j]->getId(), callsign,
                                         robotServer[j], myTank->getMotto());
             robots[j]->setTeam(AutomaticTeam);
@@ -5393,9 +5391,8 @@ static void joinInternetGame()
         {
         case ServerLink::BadVersion:
         {
-            static char versionError[] = "Incompatible server version XXXXXXXX";
-            strncpy(versionError + strlen(versionError) - 8,
-                    serverLink->getVersion(), 8);
+            char versionError[37];
+            snprintf(versionError, sizeof(versionError), "Incompatible server version %s", serverLink->getVersion());
             HUDDialogStack::get()->setFailedMessage(versionError);
             break;
         }
@@ -5542,8 +5539,7 @@ static void     renderDialog()
         const int oy = mainWindow->getOriginY();
         glScissor(ox, oy, width, height);
         glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        glOrtho(0.0, width, 0.0, height, -1.0, 1.0);
+        mainWindow->setProjectionPlay();
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
@@ -5588,8 +5584,7 @@ static void renderRoamMouse()
     glScissor(ox, oy, sx, sy);
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0.0, sx, 0.0, sy, -1.0, 1.0);
+    mainWindow->setProjectionPlay();
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
@@ -6428,8 +6423,7 @@ void drawFrame(const float dt)
 
             glScissor(ox, oy, width, height);
             glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            glOrtho(0.0, width, 0.0, height, -1.0, 1.0);
+            mainWindow->setProjectionPlay();
             glMatrixMode(GL_MODELVIEW);
             glPushMatrix();
             glLoadIdentity();
@@ -7391,179 +7385,6 @@ static void     playingLoop()
 // game initialization
 //
 
-static float        timeConfiguration(bool useZBuffer)
-{
-    // prepare depth buffer if requested
-    BZDB.set("zbuffer","1" );
-    if (useZBuffer)
-    {
-        glEnable(GL_DEPTH_TEST);
-        glClear(GL_DEPTH_BUFFER_BIT);
-    }
-
-    // use glFinish() to get accurate timings
-    //glFinish();
-    TimeKeeper startTime = TimeKeeper::getCurrent();
-    sceneRenderer->setExposed();
-    sceneRenderer->render();
-    // glFinish();
-    TimeKeeper endTime = TimeKeeper::getCurrent();
-
-    // turn off depth buffer
-    if (useZBuffer) glDisable(GL_DEPTH_TEST);
-
-    return float(endTime - startTime);
-}
-
-static void     timeConfigurations()
-{
-    static const float MaxFrameTime = 0.050f; // seconds
-    TextureManager& tm = TextureManager::instance();
-
-    // ignore results of first test.  OpenGL could be doing lazy setup.
-    BZDB.set("blend", "1");
-    BZDB.set("smooth", "1");
-    BZDB.set("lighting", "2");
-    BZDB.set("texture", "1");
-    sceneRenderer->setQuality(3);
-    BZDB.set("dither", "0");
-    BZDB.set("shadows", "1");
-    BZDB.set("radarStyle", "0");
-    tm.setMaxFilter(OpenGLTexture::Max);
-    timeConfiguration(true);
-
-    // try the best looking thing, most modern hardware can do it
-    printError("  full quality");
-    BZDB.set("blend", "1");
-    BZDB.set("smooth", "1");
-    BZDB.set("lighting", "1");
-    tm.setMaxFilter(OpenGLTexture::Max);
-    BZDB.set("texture", tm.getMaxFilterName());
-    sceneRenderer->setQuality(3);
-    BZDB.set("dither", "0");
-    BZDB.set("shadows", "1");
-    BZDB.set("stencilShadows", "1");
-    BZDB.set("radarStyle", "3");
-    BZDB.set("shotLength", "6");
-    if (timeConfiguration(true) < MaxFrameTime) return;
-    if (timeConfiguration(false) < MaxFrameTime) return;
-
-
-    // turn stencil shadows  off
-    printError("  Stipple Shadows");
-    BZDB.set("stencilShadows", "0");
-    if (timeConfiguration(true) < MaxFrameTime) return;
-    if (timeConfiguration(false) < MaxFrameTime) return;
-
-    // turn blending off
-    printError("  no Blend");
-    BZDB.set("blend", "0");
-    if (timeConfiguration(true) < MaxFrameTime) return;
-    if (timeConfiguration(false) < MaxFrameTime) return;
-
-    // turn blending on and texturing off
-    printError("  no Blend");
-    BZDB.set("blend", "1");
-    BZDB.set("texture", "0");
-    BZDB.set("shotLength", "0");
-    if (timeConfiguration(true) < MaxFrameTime) return;
-    if (timeConfiguration(false) < MaxFrameTime) return;
-
-    // time lowest quality with and without blending.  some systems
-    // stipple very slowly even though everything else is fast.  we
-    // don't want to conclude the system is slow because of stippling.
-    printError("  lowest quality");
-    const float timeNoBlendNoZ = timeConfiguration(false);
-    const float timeNoBlendZ   = timeConfiguration(true);
-    BZDB.set("blend", "1");
-    const float timeBlendNoZ   = timeConfiguration(false);
-    const float timeBlendZ     = timeConfiguration(true);
-    if (timeNoBlendNoZ > MaxFrameTime &&
-            timeNoBlendZ   > MaxFrameTime &&
-            timeBlendNoZ   > MaxFrameTime &&
-            timeBlendZ     > MaxFrameTime)
-    {
-        if (timeNoBlendNoZ < timeNoBlendZ &&
-                timeNoBlendNoZ < timeBlendNoZ &&
-                timeNoBlendNoZ < timeBlendZ)
-        {
-            // no depth, no blending definitely fastest
-            BZDB.set("zbuffer", "1");
-            BZDB.set("blend", "1");
-        }
-        if (timeNoBlendZ < timeBlendNoZ &&
-                timeNoBlendZ < timeBlendZ)
-        {
-            // no blending faster than blending
-            BZDB.set("zbuffer", "1");
-            BZDB.set("blend", "1");
-        }
-        if (timeBlendNoZ < timeBlendZ)
-        {
-            // blending faster than depth
-            BZDB.set("zbuffer", "1");
-            BZDB.set("blend", "1");
-        }
-        // blending and depth faster than without either
-        BZDB.set("zbuffer", "1");
-        BZDB.set("blend", "1");
-        return;
-    }
-}
-
-static void     findFastConfiguration()
-{
-    // time the rendering of the background with various rendering styles
-    // until we find one fast enough.  these tests assume that we're
-    // going to be fill limited.  each test comes in a pair:  with and
-    // without the zbuffer.
-    //
-    // this, of course, is only a rough estimate since we're not drawing
-    // a normal frame (no radar, no HUD, no buildings, etc.).  the user
-    // can always turn stuff on later and the settings are remembered
-    // across invocations.
-
-    // setup projection
-    float muzzleHeight = BZDB.eval(StateDatabase::BZDB_MUZZLEHEIGHT);
-    static const GLfloat eyePoint[3] = { 0.0f, 0.0f, muzzleHeight };
-    static const GLfloat targetPoint[3] = { 0.0f, 10.0f, muzzleHeight };
-    sceneRenderer->getViewFrustum().setProjection((float)(45.0 * M_PI / 180.0),
-            NearPlaneNormal,
-            FarPlaneDefault,
-            FarDeepPlaneDefault,
-            mainWindow->getWidth(),
-            mainWindow->getHeight(),
-            mainWindow->getViewHeight());
-    sceneRenderer->getViewFrustum().setView(eyePoint, targetPoint);
-
-    // add a big wall in front of where we're looking.  this is important
-    // because once textures are off, the background won't draw much of
-    // anything.  this will ensure that we continue to test polygon fill
-    // rate.  with one polygon it doesn't matter if we use a z or bsp
-    // database.
-    static const GLfloat base[3]  = { -10.0f, 10.0f,  0.0f };
-    static const GLfloat sEdge[3] = {  20.0f,  0.0f,  0.0f };
-    static const GLfloat tEdge[3] = {   0.0f,  0.0f, 10.0f };
-    static const GLfloat color[4] = { 1.0f, 1.0f, 1.0f, 0.5f };
-    SceneDatabase* timingScene = new ZSceneDatabase;
-    WallSceneNode* node = new QuadWallSceneNode(base,
-            sEdge, tEdge, 1.0f, 1.0f, true);
-    node->setColor(color);
-    node->setModulateColor(color);
-    node->setLightedColor(color);
-    node->setLightedModulateColor(color);
-    node->setTexture(HUDuiControl::getArrow());
-    node->setMaterial(OpenGLMaterial(color, color));
-    timingScene->addStaticNode(node, false);
-    timingScene->finalizeStatics();
-    sceneRenderer->setSceneDatabase(timingScene);
-    sceneRenderer->setDim(false);
-
-    timeConfigurations();
-
-    sceneRenderer->setSceneDatabase(NULL);
-}
-
 static void     defaultErrorCallback(const char* msg)
 {
     std::string message = ColorStrings[RedColor];
@@ -7643,15 +7464,8 @@ void            startPlaying(BzfDisplay* _display,
     // if no configuration go into a decent setup for a modern machine
     if (!startupInfo.hasConfiguration)
     {
-        BZDB.set("blend", "1");
-        BZDB.set("smooth", "1");
-        BZDB.set("lighting", "2");
-        BZDB.set("tesselation", "1");  // lighting set to 0 overrides
         BZDB.set("texture", "1");
         sceneRenderer->setQuality(3);
-        BZDB.set("dither", "0");
-        BZDB.set("shadows", "2");
-        BZDB.set("radarStyle", "1");
         TextureManager::instance().setMaxFilter(OpenGLTexture::Max);
     }
 
@@ -7716,11 +7530,7 @@ void            startPlaying(BzfDisplay* _display,
     {
         videoFormat = BZDB.get("resolution");
         if (videoFormat.length() != 0)
-        {
             format = display->findResolution(videoFormat.c_str());
-            if (format >= 0)
-                mainWindow->getWindow()->callResizeCallbacks();
-        }
     };
     // set the resolution (only if in full screen mode)
     if (!BZDB.isSet("_window") && BZDB.isSet("resolution"))
@@ -7758,6 +7568,9 @@ void            startPlaying(BzfDisplay* _display,
             }
         }
     }
+    // otherwise, use the default resolution if we do switch to fullscreen
+    else
+        display->setDefaultResolution();
 
     // grab mouse if we should
     if (shouldGrabMouse())
@@ -7781,17 +7594,8 @@ void            startPlaying(BzfDisplay* _display,
     notifyBzfKeyMapChanged();
 
     // make background renderer
-    BackgroundRenderer background(renderer);
+    BackgroundRenderer background;
     sceneRenderer->setBackground(&background);
-
-    // if no configuration file try to determine rendering settings
-    // that yield reasonable performance.
-    if (!startupInfo.hasConfiguration)
-    {
-        printError("testing performance;  please wait...");
-        findFastConfiguration();
-        dumpResources();
-    }
 
     static const GLfloat  zero[3] = { 0.0f, 0.0f, 0.0f };
 
@@ -7865,15 +7669,6 @@ void            startPlaying(BzfDisplay* _display,
                         info.szCSDVersion);
     }
 #endif
-
-    // print expiration
-    if (timeBombString())
-    {
-        // add message about date of expiration
-        char bombMessage[80];
-        sprintf(bombMessage, "This release will expire on %s", timeBombString());
-        controlPanel->addMessage(bombMessage);
-    }
 
     // send informative header to the console
     {

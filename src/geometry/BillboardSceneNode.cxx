@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -9,9 +9,6 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
-// bzflag common header
-#include "common.h"
 
 // interface header
 #include "BillboardSceneNode.h"
@@ -350,9 +347,6 @@ setFrameSize(float _du, float _dv)
 
 void            BillboardSceneNode::BillboardRenderNode::render()
 {
-    static const GLdouble groundPlane[] = { 0.0, 0.0, 1.0, 0.0 };
-
-    glClipPlane(GL_CLIP_PLANE0, groundPlane);
     glEnable(GL_CLIP_PLANE0);
 
     // want to move the billboard directly towards the eye a little bit.

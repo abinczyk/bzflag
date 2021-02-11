@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -83,6 +83,10 @@ public:
     void        enableGrabMouse(bool on);
     bool        isGrabEnabled(void) const;
     void        ungrabMouse();
+
+    void        setProjectionHUD() const;
+    void        setProjectionPlay() const;
+    void        setProjectionRadar(int x, int y, int w, int h, float radarRange, float maxHeight) const;
 
     void        resize();
 

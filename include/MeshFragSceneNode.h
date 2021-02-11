@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -16,11 +16,12 @@
  *  Does not support level of detail.
  */
 
-#ifndef BZF_MESH_FRAG_SCENE_NODE_H
-#define BZF_MESH_FRAG_SCENE_NODE_H
+#pragma once
 
-#include "common.h"
+// Inherits from
 #include "WallSceneNode.h"
+
+// Global headers
 #include "BzMaterial.h"
 
 //
@@ -42,35 +43,30 @@ public:
     ~MeshFragSceneNode();
 
     // virtual functions from SceneNode
-    bool cull(const ViewFrustum&) const;
-    void addShadowNodes(SceneRenderer&);
-    void addRenderNodes(SceneRenderer&);
-    void renderRadar();
+    const GLfloat* getPlane() const override;
+    bool cull(const ViewFrustum&) const override;
+    void addShadowNodes(SceneRenderer&) override;
+    void addRenderNodes(SceneRenderer&) override;
+    void renderRadar() override;
 
     // virtual functions from WallSceneNode
-    bool inAxisBox(const Extents& exts) const;
+    bool inAxisBox(const Extents& exts) const override;
 
-    void getRenderNodes(std::vector<RenderSet>& rnodes);
+    void getRenderNodes(std::vector<RenderSet>& rnodes) override;
 
 protected:
     class Geometry : public RenderNode
     {
     public:
-        Geometry(MeshFragSceneNode* node);
+        Geometry(MeshFragSceneNode &node);
         ~Geometry();
 
         void init();
-        void setStyle(int _style)
-        {
-            style = _style;
-        }
-        void render();
-        void renderRadar();
-        void renderShadow();
-        const GLfloat* getPosition() const
-        {
-            return sceneNode->getSphere();
-        }
+        void setStyle(int style);
+        void render() override;
+        void renderRadar() override;
+        void renderShadow() override;
+        const GLfloat* getPosition() const override;
 
     private:
         void drawV() const; // draw with just vertices
@@ -86,7 +82,7 @@ protected:
     private:
         int style;
         GLuint list;
-        MeshFragSceneNode* sceneNode;
+        MeshFragSceneNode &sceneNode;
     };
 
 private:
@@ -105,8 +101,6 @@ private:
     friend class MeshFragSceneNode::Geometry;
 };
 
-
-#endif // BZF_MESH_FRAG_SCENE_NODE_H
 
 // Local Variables: ***
 // mode: C++ ***

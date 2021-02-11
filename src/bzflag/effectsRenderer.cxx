@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -246,9 +246,6 @@ protected:
 
     float radius;
 };
-
-template <>
-EffectsRenderer* Singleton<EffectsRenderer>::_instance = (EffectsRenderer*)0;
 
 // utils for geo
 static void drawRingYZ(float rad, float z, float topsideOffset = 0,

@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -18,10 +18,10 @@
 #ifndef BZF_OCCLUDER_SCENE_NODE_H
 #define BZF_OCCLUDER_SCENE_NODE_H
 
-#include "common.h"
+// Inherits from
+#include "SceneNode.h"
 
 // common implementation headers
-#include "SceneNode.h"
 #include "MeshFace.h"
 
 class OccluderSceneNode : public SceneNode
@@ -32,33 +32,22 @@ public:
     ~OccluderSceneNode();
 
     // virtual functions from SceneNode
-    bool cull(const ViewFrustum&) const;
-    bool inAxisBox(const Extents& exts) const;
-    void addShadowNodes(SceneRenderer&)
-    {
-        return;
-    }
-    void addRenderNodes(SceneRenderer&)
-    {
-        return;
-    }
-    void renderRadar()
-    {
-        return;
-    }
+    bool cull(const ViewFrustum&) const override;
+    bool inAxisBox(const Extents& exts) const override;
+    void addShadowNodes(SceneRenderer&) override;
+    void addRenderNodes(SceneRenderer&) override;
+    void renderRadar() override;
 
-    int getVertexCount () const
-    {
-        return vertexCount;
-    }
-    const GLfloat* getVertex (int vertex) const
-    {
-        return vertices[vertex];
-    }
+    int getVertexCount () const override;
+
+    const GLfloat* getPlane() const override;
+
+    const GLfloat* getVertex (int vertex) const override;
 
 private:
     int vertexCount;
     GLfloat3* vertices;
+    GLfloat     plane[4];   // unit normal, distance to origin
 };
 
 

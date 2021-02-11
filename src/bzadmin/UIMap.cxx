@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -11,14 +11,6 @@
  */
 
 #include "UIMap.h"
-
-// initialize the singleton
-template <>
-UIMap* Singleton<UIMap>::_instance = (UIMap*)0;
-
-UIMap::UIMap()
-{
-}
 
 UIAdder::UIAdder(const std::string& name, UICreator creator)
 {

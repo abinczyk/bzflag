@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -660,7 +660,7 @@ bool LocalSetCommand::operator() (const char *commandLine)
 
 bool QuitCommand::operator() (const char *commandLine)
 {
-    char messageBuffer[MessageLen]; // send message
+    char messageBuffer[MessageLen + 1]; // send message
     strncpy(messageBuffer, commandLine, MessageLen);
     nboPackString(messageMessage + PlayerIdPLen, messageBuffer, MessageLen);
     serverLink->send(MsgMessage, sizeof(messageMessage), messageMessage);

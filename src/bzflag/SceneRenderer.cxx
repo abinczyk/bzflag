@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -71,10 +71,6 @@ const float   SceneRenderer::dimDensity = 0.75f;
 const GLfloat SceneRenderer::dimnessColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 const GLfloat SceneRenderer::blindnessColor[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
 
-/* initialize the singleton */
-template <>
-SceneRenderer* Singleton<SceneRenderer>::_instance = (SceneRenderer*)0;
-
 SceneRenderer::SceneRenderer() :
     window(NULL),
     blank(false),
@@ -88,7 +84,7 @@ SceneRenderer::SceneRenderer() :
     useHiddenLineOn(false),
     panelOpacity(0.3f),
     radarOpacity(0.3f),
-    radarSize(4),
+    radarSize(8),
     panelHeight(4),
     maxMotionFactor(5),
     viewType(Normal),
@@ -112,6 +108,10 @@ SceneRenderer::SceneRenderer() :
 
     // init the track mark manager
     TrackMarks::init();
+
+    // add callbacks for radar size and panel height
+    BZDB.addCallback("radarsize", bzdbCallback, NULL);
+    BZDB.addCallback("panelheight", bzdbCallback, NULL);
 
     return;
 }
@@ -315,6 +315,15 @@ void SceneRenderer::setDepthComplexity(bool on)
 void SceneRenderer::setRebuildTanks()
 {
     rebuildTanks = true;
+}
+
+
+void SceneRenderer::bzdbCallback(const std::string& name, void *)
+{
+    if(name == "radarsize")
+        RENDERER.setRadarSize(BZDB.evalInt("radarsize"));
+    else if(name == "panelheight")
+        RENDERER.setPanelHeight(BZDB.evalInt("panelheight"));
 }
 
 
@@ -787,6 +796,7 @@ void SceneRenderer::render(bool _lastFrame, bool _sameFrame,
             mirrorColor[3] = 0.2f;
         }
 
+        float extent = 1.0f;
         // darken the reflection
         if (!mapFog)
         {
@@ -794,24 +804,6 @@ void SceneRenderer::render(bool _lastFrame, bool _sameFrame,
             glLoadIdentity();
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
-            // if low quality then use stipple -- it's probably much faster
-            if (BZDBCache::blend && (useQualityValue >= 1))
-            {
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                glEnable(GL_BLEND);
-                glColor4fv(mirrorColor);
-                glRectf(-1.0f, -1.0f, +1.0f, +1.0f);
-                glDisable(GL_BLEND);
-            }
-            else
-            {
-                float stipple = mirrorColor[3];
-                glColor3fv(mirrorColor);
-                OpenGLGState::setStipple(stipple);
-                glEnable(GL_POLYGON_STIPPLE);
-                glRectf(-1.0f, -1.0f, +1.0f, +1.0f);
-                glDisable(GL_POLYGON_STIPPLE);
-            }
         }
         else
         {
@@ -819,24 +811,29 @@ void SceneRenderer::render(bool _lastFrame, bool _sameFrame,
             // if low quality then use stipple -- it's probably much faster
             frustum.executeView();
             frustum.executeProjection();
-            const float extent = BZDBCache::worldSize * 10.0f;
-            if (BZDBCache::blend && (useQualityValue >= 1))
-            {
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                glEnable(GL_BLEND);
-                glColor4fv(mirrorColor);
-                glRectf(-extent, -extent, +extent, +extent);
-                glDisable(GL_BLEND);
-            }
-            else
-            {
-                float stipple = mirrorColor[3];
-                glColor3fv(mirrorColor);
-                OpenGLGState::setStipple(stipple);
-                glEnable(GL_POLYGON_STIPPLE);
-                glRectf(-extent, -extent, +extent, +extent);
-                glDisable(GL_POLYGON_STIPPLE);
-            }
+            extent = BZDBCache::worldSize * 10.0f;
+        }
+        // if low quality then use stipple -- it's probably much faster
+        if (BZDBCache::blend && (useQualityValue >= 1))
+        {
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glEnable(GL_BLEND);
+            glColor4fv(mirrorColor);
+        }
+        else
+        {
+            float stipple = mirrorColor[3];
+            glColor3fv(mirrorColor);
+            OpenGLGState::setStipple(stipple);
+            glEnable(GL_POLYGON_STIPPLE);
+        }
+        glRectf(-extent, -extent, +extent, +extent);
+        if (BZDBCache::blend && (useQualityValue >= 1))
+            glDisable(GL_BLEND);
+        else
+            glDisable(GL_POLYGON_STIPPLE);
+        if (mapFog)
+        {
             glMatrixMode(GL_PROJECTION);
             glLoadIdentity();
             glMatrixMode(GL_MODELVIEW);
@@ -950,6 +947,10 @@ void SceneRenderer::renderScene(bool UNUSED(_lastFrame), bool UNUSED(_sameFrame)
 
     // draw start of background (no depth testing)
     OpenGLGState::resetState();
+
+    const GLdouble plane[4] = {0.0, 0.0, +1.0, 0.0};
+    glClipPlane(GL_CLIP_PLANE0, plane);
+
     if (background)
     {
         background->setBlank(blank);
@@ -1164,18 +1165,17 @@ void SceneRenderer::renderDimming()
 
         // if low quality then use stipple -- it's probably much faster
         if (BZDBCache::blend && (useQualityValue >= 1))
-        {
             glEnable(GL_BLEND);
-            glRectf(-1.0f, -1.0f, 1.0f, 1.0f);
-            glDisable(GL_BLEND);
-        }
         else
         {
             OpenGLGState::setStipple(density);
             glEnable(GL_POLYGON_STIPPLE);
-            glRectf(-1.0f, -1.0f, 1.0f, 1.0f);
-            glDisable(GL_POLYGON_STIPPLE);
         }
+        glRectf(-1.0f, -1.0f, +1.0f, +1.0f);
+        if (BZDBCache::blend && (useQualityValue >= 1))
+            glDisable(GL_BLEND);
+        else
+            glDisable(GL_POLYGON_STIPPLE);
     }
     return;
 }

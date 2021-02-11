@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -36,7 +36,11 @@ MainWindow::MainWindow(BzfWindow* _window, BzfJoystick* _joystick) :
     minHeight(MinY),
     faulting(false)
 {
+    if (!window->create())
+        faulting = true;
+
     window->addResizeCallback(resizeCB, this);
+    resize();
 }
 
 MainWindow::~MainWindow()
@@ -49,6 +53,7 @@ void            MainWindow::setMinSize(int _minWidth, int _minHeight)
     minWidth = _minWidth;
     minHeight = _minHeight;
     window->setMinSize(minWidth, minHeight);
+    resize();
 }
 
 void            MainWindow::setPosition(int x, int y)
@@ -59,6 +64,7 @@ void            MainWindow::setPosition(int x, int y)
 void            MainWindow::setSize(int _width, int _height)
 {
     window->setSize(_width, _height);
+    resize();
 }
 
 void            MainWindow::showWindow(bool on)
@@ -154,6 +160,8 @@ void            MainWindow::toggleFullscreen()
 {
     isFullscreen = !isFullscreen;
     window->setFullscreen(isFullscreen);
+    window->create();
+    resize();
 }
 
 void            MainWindow::setFullView(bool _isFullView)
@@ -247,12 +255,38 @@ void            MainWindow::setQuadrant(Quadrant _quadrant)
     glViewport(xOrigin, yOrigin, width, height);
 }
 
+void MainWindow::setProjectionHUD() const
+{
+    glLoadIdentity();
+    glOrtho(0.0, width, viewHeight - height, viewHeight, -1.0, 1.0);
+}
+
+void MainWindow::setProjectionPlay() const
+{
+    glLoadIdentity();
+    glOrtho(0.0, width, 0.0, height, -1.0, 1.0);
+}
+
+void MainWindow::setProjectionRadar(int x, int y, int w, int h, float radarRange, float maxHeight) const
+{
+    const float w2 = w / 2.0f;
+    const float h2 = h / 2.0f;
+    const float xUnit = radarRange / w2;
+    const float yUnit = radarRange / h2;
+    const float xCenter = x + w2;
+    const float yCenter = y + h2;
+
+
+    glLoadIdentity();
+    glOrtho(-xCenter * xUnit, (width - xCenter) * xUnit,
+            -yCenter * yUnit, (height - yCenter) * yUnit,
+            -maxHeight, maxHeight);
+}
+
 void            MainWindow::resize()
 {
     window->getSize(trueWidth, trueHeight);
     window->makeCurrent();
-    if (!window->create())
-        faulting = true;
     setQuadrant(quadrant);
 }
 

@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -36,14 +36,6 @@ TextChunk::TextChunk(const std::string& _fileName, int _maxLines, int _maxLineLe
     maxLines = _maxLines;
     maxLineLength = _maxLineLength < 0 ? (int)std::string::npos : _maxLineLength;
     theVector = parse();
-    return;
-}
-
-
-TextChunk::TextChunk(const TextChunk& tc)
-{
-    fileName = tc.fileName;
-    theVector = tc.theVector;
     return;
 }
 

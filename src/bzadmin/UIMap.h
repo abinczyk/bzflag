@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -41,7 +41,7 @@ class UIMap : public std::map<std::string, UICreator>,
 protected:
     friend class Singleton<UIMap>;
     /** The constructor is hidden, this is a singleton. */
-    UIMap();
+    UIMap() = default;
 
 };
 

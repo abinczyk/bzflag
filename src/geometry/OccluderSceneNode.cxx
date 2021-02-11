@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -10,9 +10,6 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
-// bzflag common header
-#include "common.h"
 
 // interface header
 #include "OccluderSceneNode.h"
@@ -31,7 +28,6 @@ OccluderSceneNode::OccluderSceneNode(const MeshFace* face)
 {
     int i;
 
-    noPlane = false;
     setOccluder(true);
 
     // record plane info
@@ -82,6 +78,11 @@ OccluderSceneNode::~OccluderSceneNode()
 }
 
 
+const GLfloat* OccluderSceneNode::getPlane() const
+{
+    return plane;
+}
+
 bool OccluderSceneNode::cull(const ViewFrustum& frustum) const
 {
     // cull if eye is behind (or on) plane
@@ -110,6 +111,31 @@ bool OccluderSceneNode::inAxisBox (const Extents& exts) const
         return false;
 
     return testPolygonInAxisBox (vertexCount, vertices, plane, exts);
+}
+
+void OccluderSceneNode::addShadowNodes(SceneRenderer&)
+{
+    return;
+}
+
+void OccluderSceneNode::addRenderNodes(SceneRenderer&)
+{
+    return;
+}
+
+void OccluderSceneNode::renderRadar()
+{
+    return;
+}
+
+int OccluderSceneNode::getVertexCount () const
+{
+    return vertexCount;
+}
+
+const GLfloat* OccluderSceneNode::getVertex (int vertex) const
+{
+    return vertices[vertex];
 }
 
 

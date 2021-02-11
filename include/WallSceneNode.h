@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -33,13 +33,14 @@ public:
     WallSceneNode();
     ~WallSceneNode();
 
+    const GLfloat* getPlane() const override;
     const GLfloat*  getColor() const;
     const GLfloat*  getDynamicColor() const;
     const GLfloat*  getModulateColor() const;
     const GLfloat*  getLightedColor() const;
     const GLfloat*  getLightedModulateColor() const;
-    GLfloat     getDistance(const GLfloat*) const;
-    virtual bool    inAxisBox (const Extents& exts) const;
+    GLfloat         getDistance(const GLfloat*) const override;
+    bool            inAxisBox (const Extents& exts) const override;
 
     void        setColor(GLfloat r, GLfloat g,
                          GLfloat b, GLfloat a = 1.0f);
@@ -66,8 +67,8 @@ public:
 
     void        setColor();
 
-    bool        cull(const ViewFrustum&) const;
-    void        notifyStyleChange();
+    bool        cull(const ViewFrustum&) const override;
+    void        notifyStyleChange() override;
 
     void        copyStyle(WallSceneNode*);
 
@@ -93,6 +94,7 @@ protected:
                               const GLfloat2Array& uvs,
                               SceneNode*& front, SceneNode*& back); // const
 
+    GLfloat     plane[4];   // unit normal, distance to origin
 private:
     static void splitEdge(float d1, float d2,
                           const GLfloat* p1, const GLfloat* p2,

@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -237,7 +237,6 @@ void RadarRenderer::drawFancyTank(const Player* player)
     // we use the depth buffer so that the treads look ok
     if (BZDBCache::zbuffer)
     {
-        glClearDepth(1.0);
         glClear(GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
     }
@@ -311,8 +310,7 @@ void RadarRenderer::renderFrame(SceneRenderer& renderer)
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0.0, window.getWidth(), 0.0, window.getHeight(), -1.0, 1.0);
+    window.setProjectionPlay();
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
@@ -430,27 +428,16 @@ void RadarRenderer::render(SceneRenderer& renderer, bool blank, bool observer)
 
     // prepare projection matrix
     glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
     const MainWindow& window = renderer.getWindow();
-    const int xSize = window.getWidth();
-    const int ySize = window.getHeight();
-    const double xCenter = double(x) + 0.5 * double(w);
-    const double yCenter = double(y) + 0.5 * double(h);
-    const double xUnit = 2.0 * radarRange / double(w);
-    const double yUnit = 2.0 * radarRange / double(h);
     // NOTE: the visual extents include passable objects
     double maxHeight = 0.0;
     const Extents* visExts = renderer.getVisualExtents();
     if (visExts)
         maxHeight = (double)visExts->maxs[2];
-    glOrtho(-xCenter * xUnit, (xSize - xCenter) * xUnit,
-            -yCenter * yUnit, (ySize - yCenter) * yUnit,
-            -(maxHeight + 10.0), (maxHeight + 10.0));
+    window.setProjectionRadar(x, y, w, h, radarRange, (float)(maxHeight + 10.0));
 
     // prepare modelview matrix
     glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
 
     OpenGLGState::resetState();
 
@@ -458,6 +445,8 @@ void RadarRenderer::render(SceneRenderer& renderer, bool blank, bool observer)
     // if jammed then draw white noise.  occasionally draw a good frame.
     if (jammed && (bzfrand() > decay))
     {
+        glPushMatrix();
+        glLoadIdentity();
 
         TextureManager &tm = TextureManager::instance();
         int noiseTexture = tm.getTextureID( "noise" );
@@ -529,11 +518,15 @@ void RadarRenderer::render(SceneRenderer& renderer, bool blank, bool observer)
         }
         if (decay > 0.015f) decay *= 0.5f;
 
+        glPopMatrix();
     }
 
     // only draw if there's a local player and a world
     else if (myTank)
     {
+        glPushMatrix();
+        glLoadIdentity();
+
         // if decay is sufficiently small then boost it so it's more
         // likely a jammed radar will get a few good frames closely
         // spaced in time.  value of 1 guarantees at least two good
@@ -676,18 +669,18 @@ void RadarRenderer::render(SceneRenderer& renderer, bool blank, bool observer)
                 const ShotPath* shot = player->getShot(j);
                 if (shot && (shot->getFlag() != Flags::InvisibleBullet || iSeeAll))
                 {
-                    const float *shotcolor;
+                    const float cs = colorScale(shot->getPosition()[2], muzzleHeight);
                     if (coloredShot)
                     {
+                        const float *shotcolor;
                         if (myTank->getFlag() == Flags::Colorblindness)
                             shotcolor = Team::getRadarColor(RogueTeam);
                         else
                             shotcolor = Team::getRadarColor(player->getTeam());
-                        const float cs = colorScale(shot->getPosition()[2], muzzleHeight);
                         glColor3f(shotcolor[0] * cs, shotcolor[1] * cs, shotcolor[2] * cs);
                     }
                     else
-                        glColor3f(1.0f, 1.0f, 1.0f);
+                        glColor3f(cs, cs, cs);
                     shot->radarRender();
                 }
             }
@@ -775,8 +768,9 @@ void RadarRenderer::render(SceneRenderer& renderer, bool blank, bool observer)
             // re-setup the blending function
             // (was changed by drawing jump jets)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glPopMatrix();
         }
+
+        glPopMatrix();
 
         if (dimming > 0.0f)
         {
@@ -791,9 +785,6 @@ void RadarRenderer::render(SceneRenderer& renderer, bool blank, bool observer)
         glDisable(GL_LINE_SMOOTH);
         glDisable(GL_POINT_SMOOTH);
     }
-
-    // restore GL state
-    glPopMatrix();
 
     triangleCount = RenderNode::getTriangleCount();
 }

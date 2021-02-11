@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -33,7 +33,6 @@
 #include "ShotUpdate.h"
 #include "PhysicsDriver.h"
 #include "CommandManager.h"
-#include "TimeBomb.h"
 #include "ConfigFileManager.h"
 #include "bzsignal.h"
 
@@ -530,6 +529,21 @@ static void sendPlayerUpdate(GameKeeper::Player *playerData, int index)
     }
     else
         directMessage(index, MsgAddPlayer, (char*)buf - (char*)bufStart, bufStart);
+}
+
+void sendAutopilotStatus(GameKeeper::Player *playerData, int index)
+{
+    void *buf, *bufStart = getDirectMessageBuffer();
+    buf = nboPackUByte(bufStart, playerData->getIndex());
+    buf = nboPackUByte(buf, playerData->player.isAutoPilot());
+
+    if (playerData->getIndex() == index)
+    {
+        // send all players autopilot status for player[playerIndex]
+        broadcastMessage(MsgAutoPilot, (char*)buf - (char*)bufStart, bufStart);
+    }
+    else
+        directMessage(index, MsgAutoPilot, (char*)buf - (char*)bufStart, bufStart);
 }
 
 std::string GetPlayerIPAddress( int i)
@@ -1668,7 +1682,7 @@ void sendMessage(int playerIndex, PlayerId dstPlayer, const char *message, Messa
     if (msglen > MessageLen)
     {
         logDebugMessage(1,"WARNING: Network message being sent is too long! "
-                        "(message is %d, cutoff at %d)\n", msglen, MessageLen);
+                        "(message is %li, cutoff at %d)\n", msglen, MessageLen);
         msglen = MessageLen;
     }
 
@@ -2290,26 +2304,6 @@ void AddPlayer(int playerIndex, GameKeeper::Player *playerData)
         numplayers += team[i].team.size;
     const int numplayersobs = numplayers + team[ObserverTeam].team.size;
 
-    // no quick rejoining, make 'em wait
-    // you can switch to observer immediately, or switch from observer
-    // to regular player immediately, but only if last time time you
-    // were a regular player isn't in the rejoin list. As well, this all
-    // only applies if the game isn't currently empty.
-    if ((t != ObserverTeam) && (GameKeeper::Player::count() >= 0))
-    {
-        float waitTime = rejoinList.waitTime (playerIndex);
-        if (waitTime > 0.0f)
-        {
-            char buffer[MessageLen];
-            logDebugMessage(2,"Player %s [%d] rejoin wait of %.1f seconds\n",playerData->player.getCallSign(), playerIndex,
-                            waitTime);
-            snprintf (buffer, MessageLen, "You are unable to begin playing for %.1f seconds.", waitTime);
-            sendMessage(ServerPlayer, playerIndex, buffer);
-            //      removePlayer(playerIndex, "rejoining too quickly");
-            //      return ;
-        }
-    }
-
     // reject player if asks for bogus team or rogue and rogues aren't allowed
     // or if the team is full or if the server is full
     if (!playerData->player.isHuman() && !playerData->player.isBot())
@@ -2389,7 +2383,11 @@ void AddPlayer(int playerIndex, GameKeeper::Player *playerData)
             {
                 otherData = GameKeeper::Player::getPlayerByIndex(i);
                 if (otherData)
+                {
                     sendPlayerUpdate(otherData, playerIndex);
+                    if (otherData->player.isAutoPilot())
+                        sendAutopilotStatus(otherData, playerIndex);
+                }
             }
 
         broadcastHandicaps(playerIndex);
@@ -2524,10 +2522,28 @@ void AddPlayer(int playerIndex, GameKeeper::Player *playerData)
             sendMessage(ServerPlayer, playerIndex, srvmsg.c_str());
         }
     }
+#endif
 
     if (playerData->player.isObserver())
         sendMessage(ServerPlayer, playerIndex, "You are in observer mode.");
-#endif
+
+    // no quick rejoining, make 'em wait
+    // you can switch to observer immediately, or switch from observer
+    // to regular player immediately, but only if last time time you
+    // were a regular player isn't in the rejoin list. As well, this all
+    // only applies if the game isn't currently empty.
+    if ((t != ObserverTeam) && (GameKeeper::Player::count() >= 0))
+    {
+        float waitTime = rejoinList.waitTime (playerIndex);
+        if (waitTime > 0.0f)
+        {
+            char buffer[MessageLen];
+            logDebugMessage(2,"Player %s [%d] rejoin wait of %.1f seconds\n",playerData->player.getCallSign(), playerIndex,
+                            waitTime);
+            snprintf (buffer, MessageLen, "You are unable to begin playing for %.1f seconds.", waitTime);
+            sendMessage(ServerPlayer, playerIndex, buffer);
+        }
+    }
 
     if (GameKeeper::Player::getPlayerByIndex(playerIndex)
             && playerData->accessInfo.isRegistered()
@@ -2796,6 +2812,7 @@ static void autopilotPlayer(int playerIndex, bool autopilot)
     if (!playerData)
         return;
 
+    // Allow disabling but not enabling autopilot if bots are disabled
     if (autopilot && BZDB.isTrue(StateDatabase::BZDB_DISABLEBOTS))
     {
         sendMessage(ServerPlayer, playerIndex, "I'm sorry, we do not allow autopilot on this server.");
@@ -2803,12 +2820,14 @@ static void autopilotPlayer(int playerIndex, bool autopilot)
         return;
     }
 
+    // Ensure that observers can't toggle autopilot
+    if (playerData->player.getTeam() == ObserverTeam)
+        return;
+
     playerData->player.setAutoPilot(autopilot);
 
-    void *buf, *bufStart = getDirectMessageBuffer();
-    buf = nboPackUByte(bufStart, playerIndex);
-    buf = nboPackUByte(buf, autopilot);
-    broadcastMessage(MsgAutoPilot, (char*)buf-(char*)bufStart, bufStart);
+    // Send the status update to everyone
+    sendAutopilotStatus(playerData, playerIndex);
 }
 
 void zapFlagByPlayer(int playerIndex)
@@ -4201,6 +4220,8 @@ static void shotFired(int playerIndex, void *buf, int len)
     shotEvent.vel[2] = shot.vel[2];
 
     shotEvent.playerID = shooter.getPlayerIndex();
+
+    shotEvent.shotID = firingInfo.shot.id;
 
     shotEvent.type = firingInfo.flagType->flagAbbv;
 
@@ -6516,21 +6537,6 @@ int main(int argc, char **argv)
 #endif
 
     Record::init();
-
-    // check time bomb
-    if (timeBombBoom())
-    {
-        std::cerr << "This release expired on " << timeBombString() << ".\n";
-        std::cerr << "Please upgrade to the latest release.\n";
-        exit(0);
-    }
-
-    // print expiration date
-    if (timeBombString())
-    {
-        std::cerr << "This release will expire on " << timeBombString() << ".\n";
-        std::cerr << "Version " << getAppVersion() << std::endl;
-    }
 
     // initialize
 #if defined(_WIN32)

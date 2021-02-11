@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -30,10 +30,6 @@
 #include "OSFile.h"
 
 /*const int NO_VARIANT = (-1); */
-
-// initialize the singleton
-template <>
-TextureManager* Singleton<TextureManager>::_instance = (TextureManager*)0;
 
 static int noiseProc(ProcTextureInit &init);
 
@@ -313,19 +309,6 @@ const ImageInfo& TextureManager::getInfo ( const char* name )
 }
 
 
-bool TextureManager::getColorAverages(int texId, float rgba[4],
-                                      bool factorAlpha) const
-{
-    TextureIDMap::const_iterator it = textureIDs.find(texId);
-    if (it == textureIDs.end())
-    {
-        logDebugMessage(1,"getColorAverages: Unable to find texture (by id): %d\n", texId);
-        return false;
-    }
-    return it->second->texture->getColorAverages(rgba, factorAlpha);
-}
-
-
 int TextureManager::addTexture( const char* name, OpenGLTexture *texture )
 {
     if (!name || !texture)
@@ -382,9 +365,9 @@ OpenGLTexture* TextureManager::loadTexture(FileTextureInit &init, bool reportFai
 
 
 int TextureManager::newTexture(const char* name, int x, int y, unsigned char* data,
-                               OpenGLTexture::Filter filter, bool repeat, int format)
+                               OpenGLTexture::Filter filter, bool repeat)
 {
-    return addTexture(name, new OpenGLTexture(x, y, data, filter, repeat, format));
+    return addTexture(name, new OpenGLTexture(x, y, data, filter, repeat));
 }
 
 

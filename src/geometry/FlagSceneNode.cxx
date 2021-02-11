@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -10,15 +10,12 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-// bzflag common header
-#include "common.h"
-
 // interface header
 #include "FlagSceneNode.h"
 
 // system headers
-#include <stdlib.h>
-#include <math.h>
+#include <cstdlib>
+#include <cmath>
 
 // common implementation headers
 #include "OpenGLGState.h"
@@ -32,17 +29,20 @@
 // FIXME (SceneRenderer.cxx is in src/bzflag)
 #include "SceneRenderer.h"
 
+namespace
+{
+constexpr int maxChunks = 20;
+constexpr int waveLists = 8;      // GL list count
+int      flagChunks = 8;     // draw flag as 8 quads
+bool     geoPole = false;    // draw the pole as quads
+bool     realFlag = false;   // don't use billboarding
+bool     flagLists = false;  // use display lists
+int      triCount = 0;       // number of rendered triangles
 
-static const int    waveLists = 8;      // GL list count
-static int      flagChunks = 8;     // draw flag as 8 quads
-static bool     geoPole = false;    // draw the pole as quads
-static bool     realFlag = false;   // don't use billboarding
-static bool     flagLists = false;  // use display lists
-static int      triCount = 0;       // number of rendered triangles
-
-static const GLfloat    Unit = 0.8f;        // meters
-static const GLfloat    Width = 1.5f * Unit;
-static const GLfloat    Height = Unit;
+const GLfloat Unit = 0.8f;        // meters
+const GLfloat Width = 1.5f * Unit;
+const GLfloat Height = Unit;
+}
 
 
 /******************************************************************************/
@@ -79,14 +79,7 @@ private:
     GLuint glList;
     GLfloat verts[(maxChunks + 1) * 2][3];
     GLfloat txcds[(maxChunks + 1) * 2][2];
-
-    static const float RippleSpeed1;
-    static const float RippleSpeed2;
 };
-
-
-const float WaveGeometry::RippleSpeed1 = (float)(2.4 * M_PI);
-const float WaveGeometry::RippleSpeed2 = (float)(1.724 * M_PI);
 
 
 inline void WaveGeometry::executeNoList() const
@@ -119,21 +112,28 @@ WaveGeometry::WaveGeometry() : refCount(0)
 
 void WaveGeometry::waveFlag(float dt)
 {
-    int i;
     if (!refCount)
         return;
+
+    // TODO: there are a lot of magic numbers here (x * M_PI) that have no
+    // explanation. Some documentation would be useful
+    constexpr auto RippleSpeed1 = float(2.4 * M_PI);
+    constexpr auto RippleSpeed2 = float(1.724 * M_PI);
+    constexpr auto TWO_PI       = float(2 * M_PI);
+
+
     ripple1 += dt * RippleSpeed1;
-    if (ripple1 >= 2.0f * M_PI)
-        ripple1 -= (float)(2.0 * M_PI);
+    if (ripple1 >= TWO_PI)
+        ripple1 -= TWO_PI;
     ripple2 += dt * RippleSpeed2;
-    if (ripple2 >= 2.0f * M_PI)
-        ripple2 -= (float)(2.0 * M_PI);
+    if (ripple2 >= TWO_PI)
+        ripple2 -= TWO_PI;
     float sinRipple2  = sinf(ripple2);
     float sinRipple2S = sinf((float)(ripple2 + 1.16 * M_PI));
     float wave0[maxChunks];
     float wave1[maxChunks];
     float wave2[maxChunks];
-    for (i = 0; i <= flagChunks; i++)
+    for (auto i = 0; i <= flagChunks; i++)
     {
         const float x      = float(i) / float(flagChunks);
         const float damp   = 0.1f * x;
@@ -145,7 +145,7 @@ void WaveGeometry::waveFlag(float dt)
         wave2[i] = wave0[i] + damp * sinRipple2;
     }
     float base = BZDBCache::flagPoleSize;
-    for (i = 0; i <= flagChunks; i++)
+    for (auto i = 0; i <= flagChunks; i++)
     {
         const float x      = float(i) / float(flagChunks);
         const float shift1 = wave0[i];
@@ -423,6 +423,7 @@ void            FlagSceneNode::FlagRenderNode::render()
     const bool is_transparent = sceneNode->transparent;
 
     const GLfloat* sphere = sceneNode->getSphere();
+    const float topHeight = base + Height;
 
     myColor4fv(sceneNode->color);
 
@@ -433,32 +434,60 @@ void            FlagSceneNode::FlagRenderNode::render()
     {
         glTranslatef(sphere[0], sphere[1], sphere[2]);
 
-        if (is_billboard && realFlag)
-        {
-            // the pole
+        if (!is_billboard || realFlag)
             glRotatef(sceneNode->angle + 180.0f, 0.0f, 0.0f, 1.0f);
-            const float Tilt = sceneNode->tilt;
-            const float Hscl = sceneNode->hscl;
-            static GLfloat shear[16] = {Hscl, 0.0f, Tilt, 0.0f,
-                                        0.0f, 1.0f, 0.0f, 0.0f,
-                                        0.0f, 0.0f, 1.0f, 0.0f,
-                                        0.0f, 0.0f, 0.0f, 1.0f
-                                       };
-            shear[0] = Hscl; // maintains the flag length
-            shear[2] = Tilt; // pulls the flag up or down
-            glPushMatrix();
-            glMultMatrixf(shear);
+
+        // Flag drawing
+        if (is_billboard)
+        {
+            // Wawing flag
+            if (realFlag)
+            {
+                const float Tilt = sceneNode->tilt;
+                const float Hscl = sceneNode->hscl;
+                static GLfloat shear[16] = {Hscl, 0.0f, Tilt, 0.0f,
+                                            0.0f, 1.0f, 0.0f, 0.0f,
+                                            0.0f, 0.0f, 1.0f, 0.0f,
+                                            0.0f, 0.0f, 0.0f, 1.0f
+                                           };
+                shear[0] = Hscl; // maintains the flag length
+                shear[2] = Tilt; // pulls the flag up or down
+                glPushMatrix();
+                glMultMatrixf(shear);
+            }
+            else
+                RENDERER.getViewFrustum().executeBillboard();
+
             allWaves[waveReference].execute();
             addTriangleCount(triCount);
-            glPopMatrix();
 
-            myColor4f(0.0f, 0.0f, 0.0f, sceneNode->color[3]);
+            if (realFlag)
+                glPopMatrix();
+        }
+        else
+        {
+            // Not wawing flag
+            glBegin(GL_TRIANGLE_STRIP);
+            glTexCoord2f(0.0f, 0.0f);
+            glVertex3f(0.0f, 0.0f, base);
+            glTexCoord2f(1.0f, 0.0f);
+            glVertex3f(Width, 0.0f, base);
+            glTexCoord2f(0.0f, 1.0f);
+            glVertex3f(0.0f, 0.0f, topHeight);
+            glTexCoord2f(1.0f, 1.0f);
+            glVertex3f(Width, 0.0f, topHeight);
+            glEnd();
+            addTriangleCount(2);
+        }
 
-            if (doing_texturing)
-                glDisable(GL_TEXTURE_2D);
+        // Drawing the pole black untextured
+        myColor4f(0.0f, 0.0f, 0.0f, sceneNode->color[3]);
 
-            // the pole
-            const float topHeight = base + Height;
+        if (doing_texturing)
+            glDisable(GL_TEXTURE_2D);
+
+        if (is_billboard && realFlag)
+        {
             glBegin(GL_TRIANGLE_STRIP);
             {
                 glVertex3f(-poleWidth, 0.0f, 0.0f);
@@ -475,66 +504,47 @@ void            FlagSceneNode::FlagRenderNode::render()
             glEnd();
             addTriangleCount(8);
         }
+        else if (geoPole)
+        {
+            if (is_billboard)
+                glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+
+            glBegin(GL_TRIANGLE_STRIP);
+            {
+                glVertex3f(-poleWidth, 0.0f, 0.0f);
+                glVertex3f(+poleWidth, 0.0f, 0.0f);
+                glVertex3f(-poleWidth, 0.0f, topHeight);
+                glVertex3f(+poleWidth, 0.0f, topHeight);
+            }
+            glEnd();
+            addTriangleCount(2);
+        }
         else
         {
             if (is_billboard)
-            {
-                RENDERER.getViewFrustum().executeBillboard();
-                allWaves[waveReference].execute();
-                addTriangleCount(triCount);
-            }
-            else
-            {
-                glRotatef(sceneNode->angle + 180.0f, 0.0f, 0.0f, 1.0f);
-                glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
-                glBegin(GL_TRIANGLE_STRIP);
-                glTexCoord2f(0.0f, 0.0f);
-                glVertex3f(0.0f, base, 0.0f);
-                glTexCoord2f(1.0f, 0.0f);
-                glVertex3f(Width, base, 0.0f);
-                glTexCoord2f(0.0f, 1.0f);
-                glVertex3f(0.0f, base + Height, 0.0f);
-                glTexCoord2f(1.0f, 1.0f);
-                glVertex3f(Width, base + Height, 0.0f);
-                glEnd();
-                addTriangleCount(2);
-            }
+                glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
 
-            myColor4f(0.0f, 0.0f, 0.0f, sceneNode->color[3]);
-
-            if (doing_texturing)
-                glDisable(GL_TEXTURE_2D);
-
-            if (geoPole)
+            glBegin(GL_LINE_STRIP);
             {
-                glBegin(GL_TRIANGLE_STRIP);
-                {
-                    glVertex3f(-poleWidth, 0.0f, 0.0f);
-                    glVertex3f(+poleWidth, 0.0f, 0.0f);
-                    glVertex3f(-poleWidth, base + Height, 0.0f);
-                    glVertex3f(+poleWidth, base + Height, 0.0f);
-                }
-                glEnd();
-                addTriangleCount(2);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(0.0f, 0.0f, topHeight);
             }
-            else
-            {
-                glBegin(GL_LINE_STRIP);
-                {
-                    glVertex3f(0.0f, 0.0f, 0.0f);
-                    glVertex3f(0.0f, base + Height, 0.0f);
-                }
-                glEnd();
-                addTriangleCount(1);
-            }
+            glEnd();
+            addTriangleCount(1);
         }
+
+        if (doing_texturing)
+            glEnable(GL_TEXTURE_2D);
     }
     glPopMatrix();
 
-    if (doing_texturing)
-        glEnable(GL_TEXTURE_2D);
     if (!BZDBCache::blend && is_transparent)
         myStipple(0.5f);
+}
+
+const GLfloat*  FlagSceneNode::FlagRenderNode::getPosition() const
+{
+    return sceneNode->getSphere();
 }
 
 

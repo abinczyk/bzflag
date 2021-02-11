@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -785,20 +785,8 @@ void            HUDRenderer::render(SceneRenderer& renderer)
 
         if (showCompose || showTimes || showTankLabels)
         {
-            // get view metrics
-            const int width = window.getWidth();
-            const int height = window.getHeight();
-            const int viewHeight = window.getViewHeight();
-            const int ox = window.getOriginX();
-            const int oy = window.getOriginY();
             // use one-to-one pixel projection
-            glScissor(ox, oy + height - viewHeight, width, viewHeight);
-            glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            glOrtho(0.0, width, viewHeight - height, viewHeight, -1.0, 1.0);
-            glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
-            glLoadIdentity();
+            setOneToOnePrj();
 
             if (showCompose)
                 renderCompose(renderer);
@@ -1750,7 +1738,7 @@ void HUDRenderer::drawMarkersInView( int centerx, int centery, const LocalPlayer
 }
 
 
-void            HUDRenderer::renderPlaying(SceneRenderer& renderer)
+void            HUDRenderer::setOneToOnePrj()
 {
     // get view metrics
     const int width = window.getWidth();
@@ -1758,28 +1746,52 @@ void            HUDRenderer::renderPlaying(SceneRenderer& renderer)
     const int viewHeight = window.getViewHeight();
     const int ox = window.getOriginX();
     const int oy = window.getOriginY();
+
+    // use one-to-one pixel projection
+    glScissor(ox, oy + height - viewHeight, width, viewHeight);
+    glMatrixMode(GL_PROJECTION);
+    window.setProjectionHUD();
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+}
+
+
+void            HUDRenderer::coverWhenBurrowed(const LocalPlayer &myTank)
+{
+    const float z = myTank.getPosition()[2];
+    if (z >= 0.0f)
+        return;
+
+    const int width = window.getWidth();
+    const int viewHeight = window.getViewHeight();
+
+    // cover the lower portion of the screen when burrowed
+    GLfloat y2 = z /
+                 (BZDB.eval(StateDatabase::BZDB_BURROWDEPTH) - 0.1f) *
+                 (float)viewHeight / 2.0f;
+    glColor4f(0.02f, 0.01f, 0.01f, 1.0);
+    glRectf(0.0f, 0.0f, (float)width, y2);
+}
+
+
+void            HUDRenderer::renderPlaying(SceneRenderer& renderer)
+{
+    // get view metrics
+    const int width = window.getWidth();
+    const int height = window.getHeight();
+    const int viewHeight = window.getViewHeight();
     const int centerx = width >> 1;
     const int centery = viewHeight >> 1;
 
     FontManager &fm = FontManager::instance();
 
-    // use one-to-one pixel projection
-    glScissor(ox, oy + height - viewHeight, width, viewHeight);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0.0, width, viewHeight - height, viewHeight, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    setOneToOnePrj();
 
     // cover the lower portion of the screen when burrowed
     const LocalPlayer *myTank = LocalPlayer::getMyTank();
-    if (myTank && myTank->getPosition()[2] < 0.0f)
-    {
-        glColor4f(0.02f, 0.01f, 0.01f, 1.0);
-        glRectf(0, 0, (float)width, (myTank->getPosition()[2]/(BZDB.eval(StateDatabase::BZDB_BURROWDEPTH)-0.1f)) * ((
-                    float)viewHeight/2.0f));
-    }
+    if (myTank)
+        coverWhenBurrowed(*myTank);
 
     // draw shot reload status
     if (BZDB.isTrue("displayReloadTimer"))
@@ -1862,21 +1874,12 @@ void            HUDRenderer::renderNotPlaying(SceneRenderer& renderer)
 {
     // get view metrics
     const int width = window.getWidth();
-    const int height = window.getHeight();
     const int viewHeight = window.getViewHeight();
-    const int ox = window.getOriginX();
-    const int oy = window.getOriginY();
 
     FontManager &fm = FontManager::instance();
 
     // use one-to-one pixel projection
-    glScissor(ox, oy + height - viewHeight, width, viewHeight);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0.0, width, viewHeight - height, viewHeight, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    setOneToOnePrj();
 
     // draw cracks
     if (showCracks)
@@ -1939,29 +1942,16 @@ void            HUDRenderer::renderRoaming(SceneRenderer& renderer)
     // get view metrics
     const int width = window.getWidth();
     const int height = window.getHeight();
-    const int viewHeight = window.getViewHeight();
-    const int ox = window.getOriginX();
-    const int oy = window.getOriginY();
 
     FontManager &fm = FontManager::instance();
 
     // use one-to-one pixel projection
-    glScissor(ox, oy + height - viewHeight, width, viewHeight);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0.0, width, viewHeight - height, viewHeight, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    setOneToOnePrj();
 
     // black out the underground if we're driving with a tank with BU
     LocalPlayer *myTank = LocalPlayer::getMyTank();
-    if (myTank && myTank->getPosition()[2] < 0.0f)
-    {
-        glColor4f(0.02f, 0.01f, 0.01f, 1.0);
-        glRectf(0, 0, (float)width, (myTank->getPosition()[2]/(BZDB.eval(StateDatabase::BZDB_BURROWDEPTH)-0.1f)) * ((
-                    float)viewHeight/2.0f));
-    }
+    if (myTank)
+        coverWhenBurrowed(*myTank);
 
     // draw shot reload status
     if ((ROAM.getMode() == Roaming::roamViewFP) && BZDB.isTrue("displayReloadTimer"))

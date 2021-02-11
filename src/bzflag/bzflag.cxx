@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -62,7 +62,6 @@
 #include "Team.h"
 #include "TextUtils.h"
 #include "TextureManager.h"
-#include "TimeBomb.h"
 #include "WordFilter.h"
 #include "World.h"
 #include "bzfSDL.h"
@@ -533,6 +532,11 @@ static void     parse(int argc, char** argv)
         }
         else if (strcmp(argv[i], "-debug") == 0)
             debugLevel++;
+#ifdef __APPLE__
+        else if (strcmp(argv[i], "-NSDocumentRevisionsDebugMode") == 0)
+            // ignore this option that is appended when running from inside Xcode
+            checkArgc(i, argc, argv[i]);
+#endif // __APPLE__
         // has to be the last option that starts with -d
         else if (strncmp(argv[i], "-d", 2) == 0)
         {
@@ -629,10 +633,6 @@ void dumpResources()
     BZDB.set("panelopacity", TextUtils::format("%f", RENDERER.getPanelOpacity()));
 
     BZDB.set("radaropacity", TextUtils::format("%f", RENDERER.getRadarOpacity()));
-
-    BZDB.set("radarsize", TextUtils::format("%d", RENDERER.getRadarSize()));
-
-    BZDB.set("panelheight", TextUtils::format("%d", RENDERER.getPanelHeight()));
 
     BZDB.set("mouseboxsize", TextUtils::format("%d", RENDERER.getMaxMotionFactor()));
 
@@ -747,16 +747,6 @@ int         main(int argc, char** argv)
     // init libs
 
     //init_packetcompression();
-
-    // check time bomb
-    if (timeBombBoom())
-    {
-        printFatalError("This release expired on %s. \n"
-                        "Please upgrade to the latest release. \n"
-                        "Exiting.", timeBombString());
-        bail(0);
-        exit(0);
-    }
 
     // initialize global objects and classes
     bzfsrand((unsigned int)time(0));
@@ -1179,9 +1169,6 @@ int         main(int argc, char** argv)
     // enable vsync if needed
     pmainWindow->getWindow()->setVerticalSync(BZDB.evalInt("saveEnergy") == 2);
 
-    // Make sure the window is created
-    pmainWindow->getWindow()->callResizeCallbacks();
-
     // get sound files.  must do this after creating the window because
     // DirectSound is a bonehead API.
     if (!noAudio)
@@ -1199,7 +1186,6 @@ int         main(int argc, char** argv)
     // initialize graphics state
     pmainWindow->getWindow()->makeCurrent();
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClearDepth(1.0);
     glClearStencil(0);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();

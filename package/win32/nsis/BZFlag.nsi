@@ -7,7 +7,7 @@
 
   !define VER_MAJOR 2
   !define VER_MINOR 4
-  !define VER_REVISION 19
+  !define VER_REVISION 21
 
   ;!define TYPE "release"
   ;!define TYPE "alpha"

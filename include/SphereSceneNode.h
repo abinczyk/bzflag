@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -17,7 +17,7 @@
 #ifndef BZF_SPHERE_SCENE_NODE_H
 #define BZF_SPHERE_SCENE_NODE_H
 
-#include "common.h"
+// Inherits from
 #include "SceneNode.h"
 
 
@@ -61,10 +61,6 @@ class SphereLodSceneNode : public SphereSceneNode
 public:
     SphereLodSceneNode(const GLfloat pos[3], GLfloat radius);
     ~SphereLodSceneNode();
-
-    void setColor(GLfloat r, GLfloat g, GLfloat b, GLfloat a = 1.0f);
-    void setColor(const GLfloat* rgba);
-    void move(const GLfloat pos[3], GLfloat radius);
 
     void setShockWave(bool value);
 
@@ -172,11 +168,6 @@ class SphereBspSceneNode : public SphereSceneNode
 public:
     SphereBspSceneNode(const GLfloat pos[3], GLfloat radius);
     ~SphereBspSceneNode();
-
-    void        setColor(GLfloat r, GLfloat g,
-                         GLfloat b, GLfloat a = 1.0f);
-    void        setColor(const GLfloat* rgba);
-    void        move(const GLfloat pos[3], GLfloat radius);
 
     void        addRenderNodes(SceneRenderer&);
     void        addShadowNodes(SceneRenderer&);

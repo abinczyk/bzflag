@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -18,7 +18,7 @@
 #ifndef BZF_MESH_POLY_SCENE_NODE_H
 #define BZF_MESH_POLY_SCENE_NODE_H
 
-#include "common.h"
+// Inherits from
 #include "WallSceneNode.h"
 
 class MeshPolySceneNode : public WallSceneNode
@@ -60,8 +60,6 @@ protected:
         {
             style = _style;
         }
-        bool getNoRadar() const;
-        void setNoRadar();
         void render();
         void renderRadar();
         void renderShadow();
@@ -80,8 +78,6 @@ protected:
     private:
         MeshPolySceneNode* sceneNode;
         int style;
-        bool drawRadar;
-        bool draw;
         const GLfloat* normal;
     public:
         GLfloat3Array vertices;

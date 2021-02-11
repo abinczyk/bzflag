@@ -1,5 +1,5 @@
 /* bzflag
- * Copyright (c) 1993-2018 Tim Riker
+ * Copyright (c) 1993-2020 Tim Riker
  *
  * This package is free software;  you can redistribute it and/or
  * modify it under the terms of the license found in the file
@@ -32,8 +32,8 @@ class CommandManager : public Singleton<CommandManager>
 
 public:
 
-    CommandManager();
-    ~CommandManager();
+    CommandManager() = default;
+    ~CommandManager() = default;
 
     // type of function that implements command.  function should return
     // a string with the output of the command (or the empty string if
